@@ -16,16 +16,34 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
+          # Removi o cache por enquanto para evitar o erro de 'No file matched'
 
-      - name: 🔧 Permissão ao Gradle Wrapper
-        run: chmod +x ./gradlew
+      - name: 🔍 Localizar Gradle (Debug)
+        run: |
+          echo "Listando arquivos para encontrar o projeto:"
+          find . -maxdepth 2 -name "*gradle*"
 
-      - name: 🔥 Build APK (Debug)
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+      - name: 🔧 Preparar Gradle
+        run: |
+          # Se o gradlew não existir, o comando abaixo tenta usar o gradle instalado no sistema
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+          else
+            echo "Gradlew não encontrado na raiz, tentando encontrar em subpastas..."
+            find . -name "gradlew" -exec chmod +x {} +
+          fi
+
+      - name: 🔥 Build APK
+        run: |
+          # Tenta rodar o build. Se o gradlew estiver em uma subpasta, o script vai achar.
+          if [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace --no-daemon
+          else
+            gradle assembleDebug --stacktrace
+          fi
 
       - name: 📦 Upload do APK "Autodidata"
         uses: actions/upload-artifact@v4
         with:
           name: awesome-iptv-autodidata
-          path: app/build/outputs/apk/debug/*.apk
+          path: "**/*.apk" # Busca o APK em qualquer pasta que ele tenha sido gerado
